@@ -96,7 +96,7 @@ const categories = [
 
 // 🔴 REPLACE THIS WITH YOUR ACTUAL GAS WEB APP URL
 // After deploying GAS, copy the web app URL and paste it here
-const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycby5esHZJvgXYmyvuQuUrjN8mUT4VjJ5Xkb9gmQ325QbRG_aqhAb4xCcyuuqL8bI_2Q/exec";
+const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyyxbp1TfBP5ZWvGmAeGVo67D-NYTsqEBil_NFAgZaamyykf_rs3LPR0Njx5IUQo-U/exec";
 
 // Contact information
 const restaurantInfo = {
