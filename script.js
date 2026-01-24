@@ -747,7 +747,7 @@ async function submitOrder() {
         };
         
         // Send to Google Apps Script (Replace with your actual GAS URL)
-        const response = await fetch(GAS_WEB_APP_URL, {
+        const response = await fetch(https://script.google.com/macros/s/AKfycbw3azV_BZyLa6wbkrYVUabeeurZvFSEOA5TVn0El-qW4W2g_ZkIkza4Wc8rNE8nNeo/exec, {
             method: 'POST',
             mode: 'no-cors',
             headers: {
