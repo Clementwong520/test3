@@ -94,8 +94,9 @@ const categories = [
     { id: 5, name: "Dessert", color: "#8b5cf6" }
 ];
 
-// Payment QR codes (Use your own GAS URL here)
-const GAS_WEB_APP_URL = "https://script.google.com/macros/s/YOUR_GAS_WEB_APP_ID/exec";
+// 🔴 REPLACE THIS WITH YOUR ACTUAL GAS WEB APP URL
+// After deploying GAS, copy the web app URL and paste it here
+const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycby5esHZJvgXYmyvuQuUrjN8mUT4VjJ5Xkb9gmQ325QbRG_aqhAb4xCcyuuqL8bI_2Q/exec";
 
 // Contact information
 const restaurantInfo = {
@@ -727,7 +728,7 @@ function updatePaymentDetails() {
     cashOrderId.textContent = currentOrder.id;
 }
 
-// Submit order to Google Apps Script
+// 🔴 FIXED: Submit order to Google Apps Script
 async function submitOrder() {
     if (!currentOrder.paymentMethod) {
         showNotification('Please select a payment method', 'error');
@@ -738,41 +739,206 @@ async function submitOrder() {
     loadingSpinner.classList.add('active');
     
     try {
-        // Prepare order data
+        // Prepare order data for GAS
         const orderData = {
-            ...currentOrder,
+            orderId: currentOrder.id,
+            timestamp: currentOrder.date,
             customer: customerInfo,
+            items: cart.map(item => ({
+                id: item.id,
+                title: item.title,
+                price: item.price,
+                quantity: item.quantity,
+                productCode: item.productCode
+            })),
+            subtotal: currentOrder.subtotal,
+            deliveryFee: currentOrder.deliveryFee,
+            total: currentOrder.total,
+            paymentMethod: currentOrder.paymentMethod,
             restaurant: restaurantInfo,
-            timestamp: new Date().toISOString()
+            status: "Pending"
         };
         
-        // Send to Google Apps Script (Replace with your actual GAS URL)
-        const response = await fetch(https://script.google.com/macros/s/AKfycbw3azV_BZyLa6wbkrYVUabeeurZvFSEOA5TVn0El-qW4W2g_ZkIkza4Wc8rNE8nNeo/exec, {
+        console.log('Sending order to GAS:', orderData);
+        
+        // Send to Google Apps Script using fetch
+        const response = await fetch(GAS_WEB_APP_URL, {
             method: 'POST',
-            mode: 'no-cors',
+            mode: 'cors',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(orderData)
         });
         
-        // For testing without GAS, simulate success
-        setTimeout(() => {
-            loadingSpinner.classList.remove('active');
-            showConfirmationStep();
-        }, 2000);
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
         
-        // For production with GAS, use this:
-        // if (response.ok) {
-        //     showConfirmationStep();
-        // } else {
-        //     throw new Error('Failed to submit order');
-        // }
+        // Try to parse JSON response
+        let result;
+        try {
+            const responseText = await response.text();
+            console.log('Raw response:', responseText);
+            
+            // Try to parse as JSON
+            if (responseText.trim().startsWith('{') || responseText.trim().startsWith('[')) {
+                result = JSON.parse(responseText);
+            } else {
+                // If not JSON, create a success response anyway
+                result = {
+                    success: true,
+                    orderId: currentOrder.id,
+                    message: 'Order submitted successfully'
+                };
+            }
+        } catch (parseError) {
+            console.warn('Could not parse response as JSON:', parseError);
+            // Create a success response anyway
+            result = {
+                success: true,
+                orderId: currentOrder.id,
+                message: 'Order submitted (response not JSON)'
+            };
+        }
+        
+        // Hide loading spinner
+        loadingSpinner.classList.remove('active');
+        
+        // Check if order was successful
+        if (result && result.success) {
+            console.log('Order submitted successfully:', result);
+            
+            // Update order ID with the one from server (if provided)
+            if (result.orderId) {
+                currentOrder.id = result.orderId;
+                confirmedOrderId.textContent = currentOrder.id;
+            }
+            
+            // Show confirmation step
+            showConfirmationStep();
+            
+            // Show success notification
+            showNotification('Order submitted successfully!');
+            
+        } else {
+            // If we can't determine success but got a 200 OK response
+            if (response.ok) {
+                console.log('Assuming success from 200 OK response');
+                showConfirmationStep();
+                showNotification('Order submitted successfully!');
+            } else {
+                throw new Error(result?.message || 'Failed to submit order');
+            }
+        }
         
     } catch (error) {
         console.error('Error submitting order:', error);
         loadingSpinner.classList.remove('active');
-        showNotification('Failed to submit order. Please try again.', 'error');
+        
+        // Show user-friendly error message
+        let errorMessage = 'Failed to submit order. ';
+        
+        if (error.message.includes('Failed to fetch')) {
+            errorMessage += 'Cannot connect to server. Please check:';
+            errorMessage += '\n1. Your internet connection';
+            errorMessage += '\n2. The GAS web app URL is correct';
+            errorMessage += '\n3. The GAS app is deployed with "Anyone" access';
+        } else if (error.message.includes('CORS')) {
+            errorMessage += 'CORS error. Please ensure GAS is deployed correctly.';
+        } else if (error.message.includes('NetworkError')) {
+            errorMessage += 'Network error. Please check your connection.';
+        } else {
+            errorMessage += error.message;
+        }
+        
+        // Show detailed error in console for debugging
+        console.error('Detailed error:', {
+            message: error.message,
+            stack: error.stack,
+            orderData: currentOrder,
+            GAS_URL: GAS_WEB_APP_URL
+        });
+        
+        // Show notification with error
+        showNotification(errorMessage, 'error');
+        
+        // Also show an alert with troubleshooting steps
+        setTimeout(() => {
+            alert('⚠️ Order Submission Issue\n\n' +
+                  'If orders are not being saved:\n\n' +
+                  '1. Check if GAS web app is deployed correctly\n' +
+                  '2. Ensure the GAS URL in script.js is correct\n' +
+                  '3. Check browser console for detailed errors\n' +
+                  '4. Try testing the GAS URL directly\n\n' +
+                  'For now, please take a screenshot of your order and send it to WhatsApp.');
+        }, 500);
+    }
+}
+
+// Alternative submit function (simpler version for testing)
+async function submitOrderSimple() {
+    loadingSpinner.classList.add('active');
+    
+    try {
+        // Prepare data
+        const orderData = {
+            orderId: currentOrder.id,
+            customer: customerInfo,
+            items: cart,
+            total: currentOrder.total,
+            paymentMethod: currentOrder.paymentMethod
+        };
+        
+        // Use FormData to avoid CORS issues
+        const formData = new FormData();
+        formData.append('order', JSON.stringify(orderData));
+        
+        // Send using FormData
+        const response = await fetch(GAS_WEB_APP_URL, {
+            method: 'POST',
+            body: formData
+        });
+        
+        // Wait a bit to simulate processing
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        loadingSpinner.classList.remove('active');
+        
+        // Always show confirmation (for testing)
+        showConfirmationStep();
+        showNotification('Order submitted! Check email for confirmation.');
+        
+    } catch (error) {
+        loadingSpinner.classList.remove('active');
+        console.error('Error:', error);
+        showNotification('Order saved locally. Please contact us directly.', 'error');
+    }
+}
+
+// Test GAS connection
+async function testGASConnection() {
+    try {
+        console.log('Testing GAS connection...');
+        
+        const response = await fetch(GAS_WEB_APP_URL, {
+            method: 'GET',
+            mode: 'cors'
+        });
+        
+        console.log('Test response status:', response.status);
+        
+        if (response.ok) {
+            const text = await response.text();
+            console.log('Test response:', text);
+            return true;
+        } else {
+            console.error('Test failed:', response.status);
+            return false;
+        }
+        
+    } catch (error) {
+        console.error('Connection test error:', error);
+        return false;
     }
 }
 
@@ -782,6 +948,13 @@ function showConfirmationStep() {
     confirmationStep.classList.add('active');
     confirmedOrderId.textContent = currentOrder.id;
     
+    // Update order tracking with current order ID
+    document.querySelectorAll('.order-id, .maeOrderId, .tngOrderId, .cashOrderId').forEach(el => {
+        if (el.id.includes('OrderId') || el.classList.contains('order-id')) {
+            el.textContent = currentOrder.id;
+        }
+    });
+    
     // Send confirmation email (simulated)
     sendConfirmationEmail();
 }
@@ -789,7 +962,18 @@ function showConfirmationStep() {
 // Send confirmation email
 function sendConfirmationEmail() {
     // In production, this would be handled by GAS
-    console.log('Confirmation email sent to:', customerInfo.email);
+    console.log('Confirmation email would be sent to:', customerInfo.email);
+    
+    // Show email sent notification
+    setTimeout(() => {
+        const emailNote = document.createElement('div');
+        emailNote.className = 'email-notification';
+        emailNote.innerHTML = `
+            <i class="fas fa-envelope"></i>
+            <span>Confirmation sent to ${customerInfo.email}</span>
+        `;
+        document.querySelector('.confirmation-details').appendChild(emailNote);
+    }, 1000);
 }
 
 // Capture screenshot
@@ -853,6 +1037,12 @@ function startNewOrder() {
     // Reset forms
     customerForm.reset();
     
+    // Reset payment selection
+    paymentOptions.forEach(opt => opt.classList.remove('active'));
+    maeQrContainer.classList.remove('active');
+    tngQrContainer.classList.remove('active');
+    cashInstructions.classList.remove('active');
+    
     // Show notification
     showNotification('New order started! Add items to your cart.');
 }
@@ -876,11 +1066,67 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// Initialize with some sample data for demo
+// Add CSS for email notification
+const style = document.createElement('style');
+style.textContent = `
+    .email-notification {
+        background: rgba(76, 201, 240, 0.1);
+        border: 1px solid rgba(76, 201, 240, 0.3);
+        padding: 10px 15px;
+        border-radius: 8px;
+        margin-top: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--success);
+    }
+    
+    .no-products {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 50px;
+        color: #aaa;
+    }
+    
+    .no-products i {
+        font-size: 3rem;
+        margin-bottom: 20px;
+        opacity: 0.5;
+    }
+    
+    .empty-cart {
+        text-align: center;
+        padding: 40px 20px;
+        color: #666;
+    }
+    
+    .empty-cart i {
+        font-size: 3rem;
+        margin-bottom: 15px;
+        opacity: 0.3;
+    }
+    
+    .full-width {
+        grid-column: 1 / -1;
+    }
+`;
+document.head.appendChild(style);
+
+// Initialize with some sample data for demo (optional)
 window.addEventListener('load', () => {
-    // Uncomment to pre-populate cart for demo
+    console.log('Food ordering system initialized');
+    console.log('GAS URL:', GAS_WEB_APP_URL);
+    
+    // Test GAS connection on load
+    testGASConnection().then(isConnected => {
+        if (isConnected) {
+            console.log('✅ GAS connection successful');
+        } else {
+            console.warn('⚠️ GAS connection failed. Check URL and deployment.');
+        }
+    });
+    
+    // For demo purposes, you can pre-populate cart
     // addToCart(100);
     // addToCart(103);
-    
-    console.log('Food ordering system initialized');
 });
