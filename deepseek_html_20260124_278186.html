@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Malaysian Restaurant | Online Ordering</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="notification" id="notification">
+        <i class="fas fa-check-circle"></i> <span id="notification-text">Product added to cart!</span>
+    </div>
+    
+    <!-- Customer Info Modal -->
+    <div class="modal-overlay" id="customerModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-circle"></i> Customer Information</h3>
+                <button class="close-modal" id="closeCustomerModal">&times;</button>
+            </div>
+            <form id="customerForm">
+                <div class="form-group">
+                    <label for="customerName"><i class="fas fa-user"></i> Full Name *</label>
+                    <input type="text" id="customerName" placeholder="Enter your full name" required>
+                </div>
+                <div class="form-group">
+                    <label for="customerEmail"><i class="fas fa-envelope"></i> Email Address *</label>
+                    <input type="email" id="customerEmail" placeholder="Enter your email" required>
+                </div>
+                <div class="form-group">
+                    <label for="customerPhone"><i class="fas fa-phone"></i> Phone Number *</label>
+                    <input type="tel" id="customerPhone" placeholder="+60 12-345 6789" required>
+                </div>
+                <div class="form-group">
+                    <label for="deliveryAddress"><i class="fas fa-map-marker-alt"></i> Delivery Address</label>
+                    <textarea id="deliveryAddress" placeholder="Enter delivery address (if delivery)" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="orderType"><i class="fas fa-shopping-bag"></i> Order Type</label>
+                    <select id="orderType">
+                        <option value="pickup">Pickup</option>
+                        <option value="delivery">Delivery</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="specialInstructions"><i class="fas fa-sticky-note"></i> Special Instructions</label>
+                    <textarea id="specialInstructions" placeholder="Any special requests or instructions..." rows="2"></textarea>
+                </div>
+                <div class="form-buttons">
+                    <button type="button" class="btn-secondary" id="cancelCustomerInfo">Cancel</button>
+                    <button type="submit" class="btn-primary">Continue to Summary</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Loading Spinner -->
+    <div class="loading-spinner" id="loadingSpinner">
+        <div class="spinner"></div>
+        <p>Processing your order...</p>
+    </div>
+    
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="restaurant-info">
+                    <h1><i class="fas fa-utensils"></i> Malaysian Restaurant</h1>
+                    <p class="subtitle">Authentic Malaysian Cuisine • Free Delivery Above RM50</p>
+                    <div class="contact-info">
+                        <span><i class="fas fa-clock"></i> Open: 11AM - 10PM Daily</span>
+                        <span><i class="fas fa-phone"></i> +60 12-345 6789</span>
+                        <span><i class="fas fa-map-marker-alt"></i> Kuala Lumpur</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Cart Icon -->
+        <div class="cart-container">
+            <div class="cart-icon" id="cartIcon">
+                <i class="fas fa-shopping-cart"></i>
+                <span class="cart-count">0</span>
+            </div>
+        </div>
+        
+        <!-- Category Filter Bar -->
+        <div class="category-filter" id="categoryFilter">
+            <!-- Categories will be generated here -->
+        </div>
+        
+        <!-- Search Bar -->
+        <div class="search-container">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Search dishes...">
+            </div>
+            <div class="sort-options">
+                <select id="sortBy">
+                    <option value="default">Sort by</option>
+                    <option value="price-low">Price: Low to High</option>
+                    <option value="price-high">Price: High to Low</option>
+                    <option value="name">Name A-Z</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- Product Grid -->
+        <div class="product-grid" id="productGrid">
+            <!-- Products will be generated here -->
+        </div>
+        
+        <!-- Cart Modal -->
+        <div class="cart-modal" id="cartModal">
+            <div class="cart-header">
+                <h3><i class="fas fa-shopping-cart"></i> Your Order</h3>
+                <button id="closeCart"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="cart-items" id="cartItems">
+                <!-- Cart items will be added here -->
+            </div>
+            <div class="cart-footer">
+                <div class="cart-totals">
+                    <div class="cart-subtotal">
+                        <span>Subtotal:</span>
+                        <span id="cartSubtotal">RM 0.00</span>
+                    </div>
+                    <div class="cart-delivery">
+                        <span>Delivery Fee:</span>
+                        <span id="deliveryFee">RM 0.00</span>
+                    </div>
+                    <div class="cart-total">
+                        <span>Total:</span>
+                        <span id="cartTotal">RM 0.00</span>
+                    </div>
+                </div>
+                <button class="checkout-btn" id="checkoutBtn">
+                    <i class="fas fa-shopping-bag"></i> Proceed to Checkout
+                </button>
+            </div>
+        </div>
+
+        <!-- Order Summary Modal -->
+        <div class="summary-modal" id="summaryModal">
+            <div class="summary-content" id="summaryContent">
+                <button class="close-summary" id="closeSummary"><i class="fas fa-times"></i></button>
+                
+                <!-- Order Summary Step -->
+                <div class="summary-step active" id="summaryStep">
+                    <div class="summary-header">
+                        <div class="order-status">
+                            <div class="status-icon success">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <h3>Order Summary</h3>
+                        </div>
+                        <p>Order #<span id="orderId">0001</span> • <span id="orderDate"></span></p>
+                    </div>
+                    
+                    <div class="customer-details-summary">
+                        <h4><i class="fas fa-user"></i> Customer Details</h4>
+                        <div id="customerDetailsDisplay">
+                            <!-- Customer details will be shown here -->
+                        </div>
+                    </div>
+                    
+                    <div class="summary-details">
+                        <table class="summary-table">
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Price</th>
+                                    <th>Qty</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="summaryItems">
+                                <!-- Order items will be added here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="order-totals">
+                        <div class="order-row">
+                            <span>Subtotal:</span>
+                            <span id="summarySubtotal">RM 0.00</span>
+                        </div>
+                        <div class="order-row">
+                            <span>Delivery Fee:</span>
+                            <span id="summaryDelivery">RM 0.00</span>
+                        </div>
+                        <div class="order-total">
+                            <span>Total Amount:</span>
+                            <span id="summaryTotal">RM 0.00</span>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-instructions">
+                        <h4><i class="fas fa-info-circle"></i> Next Steps:</h4>
+                        <p>1. Take a screenshot of this order summary</p>
+                        <p>2. Proceed to payment using your preferred method</p>
+                        <p>3. Send payment proof to our WhatsApp</p>
+                        <div class="contact-info-summary">
+                            <p><i class="fab fa-whatsapp"></i> +60 12-345 6789</p>
+                            <p><i class="fas fa-envelope"></i> orders@restaurant.com</p>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-buttons">
+                        <button class="btn-secondary" id="backToCartBtn">
+                            <i class="fas fa-arrow-left"></i> Back to Cart
+                        </button>
+                        <button class="btn-secondary" id="screenshotBtn">
+                            <i class="fas fa-camera"></i> Take Screenshot
+                        </button>
+                        <button class="btn-primary" id="nextToPaymentBtn">
+                            Proceed to Payment <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Payment Step -->
+                <div class="payment-step" id="paymentStep">
+                    <div class="payment-header">
+                        <div class="status-icon">
+                            <i class="fas fa-credit-card"></i>
+                        </div>
+                        <h3>Select Payment Method</h3>
+                        <p>Choose your preferred payment option</p>
+                    </div>
+                    
+                    <div class="payment-options">
+                        <div class="payment-option active" data-method="mae">
+                            <div class="payment-icon">
+                                <i class="fas fa-mobile-alt"></i>
+                            </div>
+                            <div class="payment-details">
+                                <h4>MAE</h4>
+                                <p>Maybank QRPay</p>
+                            </div>
+                        </div>
+                        <div class="payment-option" data-method="tng">
+                            <div class="payment-icon">
+                                <i class="fas fa-wallet"></i>
+                            </div>
+                            <div class="payment-details">
+                                <h4>Touch 'n Go</h4>
+                                <p>eWallet Payment</p>
+                            </div>
+                        </div>
+                        <div class="payment-option" data-method="cash">
+                            <div class="payment-icon">
+                                <i class="fas fa-money-bill-wave"></i>
+                            </div>
+                            <div class="payment-details">
+                                <h4>Cash</h4>
+                                <p>Pay on pickup/delivery</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="qr-container active" id="maeQrContainer">
+                        <div class="qr-header">
+                            <h4><i class="fas fa-qrcode"></i> MAE QR Code</h4>
+                        </div>
+                        <div class="qr-code">
+                            <img id="maeQrImage" src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=MAE%3Arestaurant%40maybank%2Forder123%2Ftotal=RM100.00" alt="MAE QR Code">
+                        </div>
+                        <div class="payment-details">
+                            <p><strong>Account Name:</strong> MALAYSIAN RESTAURANT SDN BHD</p>
+                            <p><strong>Reference:</strong> Order #<span id="maeOrderId">0001</span></p>
+                        </div>
+                    </div>
+                    
+                    <div class="qr-container" id="tngQrContainer">
+                        <div class="qr-header">
+                            <h4><i class="fas fa-qrcode"></i> Touch 'n Go QR</h4>
+                        </div>
+                        <div class="qr-code">
+                            <img id="tngQrImage" src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=TNG%3Arestaurant%40tng%2Forder123%2Ftotal=RM100.00" alt="TNG QR Code">
+                        </div>
+                        <div class="payment-details">
+                            <p><strong>Merchant:</strong> MALAYSIAN RESTAURANT</p>
+                            <p><strong>Reference:</strong> Order #<span id="tngOrderId">0001</span></p>
+                        </div>
+                    </div>
+                    
+                    <div class="cash-instructions" id="cashInstructions">
+                        <div class="instruction-header">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <h4>Cash Payment Instructions</h4>
+                        </div>
+                        <div class="instruction-content">
+                            <p>Please prepare exact cash amount for our delivery rider/pickup counter.</p>
+                            <p><strong>Total to pay:</strong> RM <span id="cashAmount">0.00</span></p>
+                            <p><strong>Order Reference:</strong> #<span id="cashOrderId">0001</span></p>
+                        </div>
+                    </div>
+                    
+                    <div class="payment-instructions">
+                        <h4><i class="fas fa-info-circle"></i> Important:</h4>
+                        <p>1. Complete your payment using the selected method</p>
+                        <p>2. Take a screenshot of the payment confirmation</p>
+                        <p>3. Send it to WhatsApp: <strong>+60 12-345 6789</strong></p>
+                        <p>4. We'll confirm your order within 15 minutes</p>
+                    </div>
+                    
+                    <div class="payment-buttons">
+                        <button class="btn-secondary" id="backToSummaryBtn">
+                            <i class="fas fa-arrow-left"></i> Back to Summary
+                        </button>
+                        <button class="btn-success" id="confirmOrderBtn">
+                            <i class="fas fa-check-circle"></i> Confirm Order
+                        </button>
+                        <button class="btn-secondary" id="newOrderBtn">
+                            <i class="fas fa-plus"></i> New Order
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Confirmation Step -->
+                <div class="confirmation-step" id="confirmationStep">
+                    <div class="confirmation-content">
+                        <div class="confirmation-icon success">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <h3>Order Confirmed!</h3>
+                        <p class="order-id">Order #<span id="confirmedOrderId">0001</span></p>
+                        
+                        <div class="confirmation-details">
+                            <p><i class="fas fa-check"></i> Order received successfully</p>
+                            <p><i class="fas fa-envelope"></i> Confirmation email sent</p>
+                            <p><i class="fas fa-clock"></i> Estimated preparation: <strong>30-45 minutes</strong></p>
+                        </div>
+                        
+                        <div class="order-tracking">
+                            <h4><i class="fas fa-map-marker-alt"></i> Order Status</h4>
+                            <div class="tracking-steps">
+                                <div class="tracking-step active">
+                                    <div class="step-dot"></div>
+                                    <span>Order Received</span>
+                                </div>
+                                <div class="tracking-step">
+                                    <div class="step-dot"></div>
+                                    <span>Preparing</span>
+                                </div>
+                                <div class="tracking-step">
+                                    <div class="step-dot"></div>
+                                    <span>Ready</span>
+                                </div>
+                                <div class="tracking-step">
+                                    <div class="step-dot"></div>
+                                    <span>Completed</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="confirmation-buttons">
+                            <button class="btn-primary" id="downloadReceiptBtn">
+                                <i class="fas fa-download"></i> Download Receipt
+                            </button>
+                            <button class="btn-secondary" id="startNewOrderBtn">
+                                <i class="fas fa-shopping-cart"></i> New Order
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4><i class="fas fa-utensils"></i> Malaysian Restaurant</h4>
+                <p>Serving authentic Malaysian cuisine since 2010</p>
+            </div>
+            <div class="footer-section">
+                <h4>Contact</h4>
+                <p><i class="fas fa-phone"></i> +60 12-345 6789</p>
+                <p><i class="fas fa-envelope"></i> orders@restaurant.com</p>
+            </div>
+            <div class="footer-section">
+                <h4>Hours</h4>
+                <p>Daily: 11AM - 10PM</p>
+                <p>Last Order: 9:30PM</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 Malaysian Restaurant. All rights reserved.</p>
+        </div>
+    </footer>
+    
+    <script src="script.js"></script>
+</body>
+</html>
